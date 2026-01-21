@@ -954,9 +954,20 @@ If inconclusive:
 </step>
 
 <step name="fix_and_verify">
-**Apply fix using TDD: write test first, then fix.**
+**Apply fix, with TDD if enabled.**
 
 Update status to "fixing".
+
+**Check TDD setting:**
+```bash
+TDD_ENABLED=$(cat .planning/config.json 2>/dev/null | grep -o '"tdd"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
+```
+
+**If `TDD_ENABLED=false`:** Skip to step 2 (GREEN) - apply fix directly without writing test first.
+
+**If `TDD_ENABLED=true`:** Follow full RED-GREEN cycle below.
+
+---
 
 **1. RED - Write failing test that reproduces the bug**
 - Create test file if doesn't exist (use project's test framework)
@@ -991,7 +1002,8 @@ esac
 - If verification FAILS: status -> "investigating", return to investigation_loop
 - If verification PASSES: Update Resolution.verification, proceed to archive_session
 
-**TDD is MANDATORY.** A fix without a regression test is not accepted.
+**If `TDD_ENABLED=true`:** A fix without a regression test is not accepted.
+**If `TDD_ENABLED=false`:** Proceed with fix, test is optional.
 </step>
 
 <step name="archive_session">

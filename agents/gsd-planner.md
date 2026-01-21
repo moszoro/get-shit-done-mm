@@ -186,7 +186,15 @@ Tasks must be specific enough for clean execution. Compare:
 
 ## TDD Detection Heuristic
 
-For each potential task, evaluate TDD fit:
+**First, check if TDD is enabled:**
+
+```bash
+TDD_ENABLED=$(cat .planning/config.json 2>/dev/null | grep -o '"tdd"[[:space:]]*:[[:space:]]*[^,}]*' | grep -o 'true\|false' || echo "true")
+```
+
+**If `TDD_ENABLED=false`:** Skip TDD entirely. Create all plans with `type: execute`.
+
+**If `TDD_ENABLED=true`:** For each potential task, evaluate TDD fit:
 
 **Heuristic:** Can you write `expect(fn(input)).toBe(output)` before writing `fn`?
 - Yes: Create a dedicated TDD plan for this feature
