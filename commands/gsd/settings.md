@@ -39,7 +39,7 @@ Parse current values (default to `true` if not present):
 
 ## 3. Present Settings
 
-Use AskUserQuestion with current values shown:
+**Round 1 — Core workflow settings:**
 
 ```
 AskUserQuestion([
@@ -79,7 +79,16 @@ AskUserQuestion([
       { label: "Yes", description: "Verify must-haves after execution" },
       { label: "No", description: "Skip post-execution verification" }
     ]
-  },
+  }
+])
+```
+
+**Pre-select based on current config values.**
+
+**Round 2 — Development standards and security:**
+
+```
+AskUserQuestion([
   {
     question: "Enforce TDD workflow? (write tests before code)",
     header: "TDD",
