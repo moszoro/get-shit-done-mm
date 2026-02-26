@@ -1,5 +1,5 @@
 <purpose>
-Interactive configuration of GSD workflow agents (research, plan_check, verifier), TDD, security compliance, auto-advance, and model profile selection via multi-question prompt. Updates .planning/config.json with user preferences. Optionally saves settings as global defaults (~/.gsd/defaults.json) for future projects.
+Interactive configuration of GSD workflow agents (research, plan_check, verifier), TDD, nyquist validation, security compliance, auto-advance, and model profile selection via multi-question prompt. Updates .planning/config.json with user preferences. Optionally saves settings as global defaults (~/.gsd/defaults.json) for future projects.
 </purpose>
 
 <required_reading>
@@ -29,6 +29,7 @@ Parse current values (default to `true` if not present):
 - `workflow.plan_check` — spawn plan checker during plan-phase
 - `workflow.verifier` — spawn verifier during execute-phase
 - `workflow.tdd` — enforce TDD for all plans (default: `true`)
+- `workflow.nyquist_validation` — validation architecture research during plan-phase
 - `model_profile` — which model each agent uses (default: `balanced`)
 - `security_compliance` — security compliance level (default: `"none"`)
 - `git.branching_strategy` — branching approach (default: `"none"`)
@@ -85,7 +86,7 @@ AskUserQuestion([
 </step>
 
 <step name="present_settings_round2">
-**Round 2 — TDD, security, and branching (3 questions):**
+**Round 2 — TDD, security, auto-advance, and nyquist (4 questions):**
 
 ```
 AskUserQuestion([
@@ -118,6 +119,26 @@ AskUserQuestion([
     ]
   },
   {
+    question: "Enable Nyquist Validation? (researches test coverage during planning)",
+    header: "Nyquist",
+    multiSelect: false,
+    options: [
+      { label: "Yes (Recommended)", description: "Research automated test coverage during plan-phase. Adds validation requirements to plans. Blocks approval if tasks lack automated verify." },
+      { label: "No", description: "Skip validation research. Good for rapid prototyping or no-test phases." }
+    ]
+  }
+])
+```
+
+**Pre-select based on current config values.**
+</step>
+
+<step name="present_settings_round3">
+**Round 3 — Git branching (1 question):**
+
+```
+AskUserQuestion([
+  {
     question: "Git branching strategy?",
     header: "Branching",
     multiSelect: false,
@@ -146,7 +167,8 @@ Merge new settings into existing config.json:
     "plan_check": true/false,
     "verifier": true/false,
     "tdd": true/false,
-    "auto_advance": true/false
+    "auto_advance": true/false,
+    "nyquist_validation": true/false
   },
   "git": {
     "branching_strategy": "none" | "phase" | "milestone"
@@ -193,7 +215,8 @@ Write `~/.gsd/defaults.json` with:
     "research": <current>,
     "plan_check": <current>,
     "verifier": <current>,
-    "auto_advance": <current>
+    "auto_advance": <current>,
+    "nyquist_validation": <current>
   }
 }
 ```
@@ -216,6 +239,7 @@ Display:
 | TDD Workflow         | {On/Off} |
 | Security Compliance  | {none/soc2/hipaa/pci-dss/iso27001} |
 | Auto-Advance         | {On/Off} |
+| Nyquist Validation   | {On/Off} |
 | Git Branching        | {None/Per Phase/Per Milestone} |
 | Saved as Defaults    | {Yes/No} |
 
@@ -236,7 +260,7 @@ Quick commands:
 
 <success_criteria>
 - [ ] Current config read
-- [ ] User presented with 8 settings across 2 rounds (4 + 4, respecting AskUserQuestion limit)
+- [ ] User presented with 9 settings across 3 rounds (4 + 4 + 1, respecting AskUserQuestion limit)
 - [ ] Config updated with model_profile, security_compliance, workflow, and git sections
 - [ ] User offered to save as global defaults (~/.gsd/defaults.json)
 - [ ] Changes confirmed to user
