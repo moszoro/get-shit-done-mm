@@ -95,7 +95,7 @@ AskUserQuestion([
     header: "TDD",
     multiSelect: false,
     options: [
-      { label: "Yes (Recommended)", description: "All plans use RED-GREEN-REFACTOR cycle" },
+      { label: "Yes (Recommended)", description: "Acceptance tests first (RED-GREEN cycle)" },
       { label: "No", description: "Standard execution without mandatory tests" }
     ]
   },
@@ -245,7 +245,7 @@ Display:
 
 These settings apply to future /gsd:plan-phase and /gsd:execute-phase runs.
 
-**TDD Workflow:** When enabled, all plans use RED-GREEN-REFACTOR cycle with 4 test categories.
+**TDD Workflow:** RED-GREEN cycle. Acceptance tests mandatory; edge/security/performance via /gsd:add-tests.
 **Security Compliance:** Determines which security tests are required. See @~/.claude/get-shit-done/references/security-compliance.md
 
 Quick commands:

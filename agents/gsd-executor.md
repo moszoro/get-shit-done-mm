@@ -84,8 +84,8 @@ grep -n "type=\"checkpoint" [plan-path]
 
 - **If `TDD_ENABLED=false`:** Treat as Pattern A (standard execution, skip TDD)
 - Plan contains `<feature>` element instead of `<tasks>`
-- Execute using RED-GREEN-REFACTOR cycle (see tdd_plan_execution)
-- Produces 2-3 commits per feature (test/feat/refactor)
+- Execute using RED-GREEN cycle (see tdd_plan_execution)
+- Produces 2 commits per feature (optional 3rd for refactor)
 - Create SUMMARY.md with TDD phases documented
 
 **Pattern A: Fully autonomous (no checkpoints)**
@@ -335,9 +335,7 @@ TDD plans contain `<feature>` element (not `<tasks>`):
   </behavior>
   <tests>
     <acceptance>...</acceptance>
-    <edge_cases>...</edge_cases>
-    <security>...</security>
-    <performance>...</performance>
+    <!-- Optional: <recommended_later> for edge/security/performance -->
   </tests>
   <implementation>How to implement once tests pass</implementation>
 </feature>
@@ -374,25 +372,16 @@ detect_and_setup_tests() {
 }
 ```
 
-**2. RED - Write ALL failing tests first:**
+**2. RED - Write failing acceptance tests:**
 
-Read `<tests>` section with 4 categories:
-- `<acceptance>` — From must_haves.truths
-- `<edge_cases>` — Null, empty, overflow, malformed
-- `<security>` — Based on project's security_compliance level
-- `<performance>` — Response time, memory thresholds
-
-For EACH test category:
-1. Write tests that describe expected behavior
+Read `<tests>` section — `<acceptance>` tests are mandatory:
+1. Write tests describing expected behavior from must_haves.truths
 2. Run tests - ALL must fail (if any pass, investigate)
-3. Commit all tests together:
+3. Commit:
    ```
    test({phase}-{plan}): add failing tests for [feature]
 
    - [N] acceptance tests
-   - [N] edge case tests
-   - [N] security tests
-   - [N] performance tests
    ```
 
 **3. GREEN - Implement to pass:**
@@ -404,14 +393,10 @@ For EACH test category:
    ```
    feat({phase}-{plan}): implement [feature]
 
-   All tests passing:
-   - Acceptance: [N]/[N]
-   - Edge cases: [N]/[N]
-   - Security: [N]/[N]
-   - Performance: [N]/[N]
+   All acceptance tests passing: [N]/[N]
    ```
 
-**4. REFACTOR (if needed):**
+**4. REFACTOR (optional):** Skip unless obvious cleanup exists.
 
 - Clean up code if obvious improvements
 - Run tests - MUST still pass
@@ -420,42 +405,23 @@ For EACH test category:
    refactor({phase}-{plan}): clean up [feature]
    ```
 
-**TDD Plan Commits:** Each TDD plan produces 2-3 atomic commits.
+**TDD Plan Commits:** Each TDD plan produces 2 commits (optional 3rd for refactor).
 
 **Error handling:**
 
 - If ANY test passes in RED phase: Feature may exist or test is wrong — investigate
 - If tests don't pass in GREEN phase: Debug, iterate until all green
-- If tests fail in REFACTOR phase: Undo refactor, try smaller changes
 
-**Security test selection:**
+**Recommended later tests:**
 
-Read `security_compliance` from `.planning/config.json`:
-
-```bash
-SECURITY_LEVEL=$(cat .planning/config.json 2>/dev/null | grep -oE '"security_compliance"\s*:\s*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"' || echo "none")
-
-# Validate against allowed values
-case "$SECURITY_LEVEL" in
-  none|soc2|hipaa|pci-dss|iso27001) ;;
-  *) echo "Warning: Invalid security_compliance '$SECURITY_LEVEL', using 'none'" >&2; SECURITY_LEVEL="none" ;;
-esac
-```
-
-| Level | Include Tests For |
-|-------|-------------------|
-| none | Input validation, output encoding, no hardcoded secrets |
-| soc2 | + Access control, audit logging, encryption |
-| hipaa | + PHI masking, minimum necessary access |
-| pci-dss | + PAN never logged, CVV never stored, MFA |
-| iso27001 | + Least privilege, key rotation |
+If the plan includes `<recommended_later>`, note those for `/gsd:add-tests`. Security tests are only relevant for tasks involving auth, data access, or input validation — not blanket on every task. Security compliance level from config.json informs which tests to recommend.
 
 Reference: `@~/.claude/get-shit-done/references/security-compliance.md`
 
 </tdd_plan_execution>
 
 <tdd_execution>
-When executing a task with `tdd="true"` attribute (within standard plans), follow RED-GREEN-REFACTOR cycle.
+When executing a task with `tdd="true"` attribute (within standard plans), follow RED-GREEN cycle.
 
 **1. Check test infrastructure** (if first TDD task): detect project type, install test framework if needed.
 
@@ -463,9 +429,9 @@ When executing a task with `tdd="true"` attribute (within standard plans), follo
 
 **3. GREEN:** Read `<implementation>`, write minimal code to pass, run (MUST pass), commit: `feat({phase}-{plan}): implement [feature]`
 
-**4. REFACTOR (if needed):** Clean up, run tests (MUST still pass), commit only if changes: `refactor({phase}-{plan}): clean up [feature]`
+**4. REFACTOR (optional):** Skip unless obvious cleanup exists. Clean up, run tests (MUST still pass), commit only if changes: `refactor({phase}-{plan}): clean up [feature]`
 
-**Error handling:** RED doesn't fail → investigate. GREEN doesn't pass → debug/iterate. REFACTOR breaks → undo.
+**Error handling:** RED doesn't fail → investigate. GREEN doesn't pass → debug/iterate.
 </tdd_execution>
 
 <task_commit_protocol>

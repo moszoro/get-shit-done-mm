@@ -3,7 +3,7 @@ TDD is about design quality, not coverage metrics. The red-green-refactor cycle 
 
 **Principle:** If you can describe the behavior as `expect(fn(input)).toBe(output)` before writing `fn`, TDD improves the result.
 
-**Key insight:** TDD work is fundamentally heavier than standard tasks—it requires 2-3 execution cycles (RED → GREEN → REFACTOR), each with file reads, test runs, and potential debugging. TDD features get dedicated plans to ensure full context is available throughout the cycle.
+**Key insight:** TDD work is fundamentally heavier than standard tasks—it requires 2 execution cycles (RED → GREEN), each with file reads, test runs, and potential debugging. TDD features get dedicated plans to ensure full context is available throughout the cycle.
 </overview>
 
 <when_to_use_tdd>
@@ -31,13 +31,14 @@ TDD is about design quality, not coverage metrics. The red-green-refactor cycle 
 → No: Use standard plan, add tests after if needed
 </when_to_use_tdd>
 
-<test_categories>
-## Test Categories (TDD-First)
+<test_strategy>
+## Test Strategy
 
-Every TDD plan must include tests in 4 categories. Write ALL tests in RED phase before implementation.
+### Acceptance Tests — Mandatory (TDD-First)
 
-### 1. Acceptance Tests
-From `must_haves.truths` - prove the feature does what it should.
+Every TDD plan MUST include acceptance tests. Write them in RED phase before implementation.
+
+From `must_haves.truths` — prove the feature does what it should.
 
 ```typescript
 // From must_haves: "Loader merges global + project rules"
@@ -48,43 +49,36 @@ test('merges global and project rules', () => {
 })
 ```
 
-### 2. Edge Case Tests
-Boundary conditions, null/empty, overflow, malformed input.
+### Recommended Later (Non-Blocking)
 
+Add these to tasks that benefit from them — not every task needs all categories. Use `/gsd:add-tests` to add after TDD plans ship.
+
+**Edge Case Tests** — for parsers, validators, data transformations:
 ```typescript
 test('handles empty global constitution', () => ...)
-test('handles missing project constitution', () => ...)
 test('handles malformed YAML', () => ...)
-test('handles duplicate rule IDs', () => ...)
-test('handles max file size', () => ...)
 ```
 
-### 3. Security Tests
+**Security Tests** — for auth endpoints, data access, input handling:
 Based on project's `security_compliance` level from config.json.
-
 Reference: @~/.claude/get-shit-done/references/security-compliance.md
 
 ```typescript
 // For soc2 compliance
 test('denies unauthenticated access', () => ...)
 test('logs data access with user ID', () => ...)
-test('data encrypted at rest', () => ...)
 ```
 
-### 4. Performance Tests
-Response time, memory, throughput thresholds.
-
+**Performance Tests** — for critical paths, heavy queries, real-time features:
 ```typescript
 test('loads constitution in < 100ms', async () => {
   const start = Date.now()
   await loader.load()
   expect(Date.now() - start).toBeLessThan(100)
 })
-
-test('memory usage < 50MB', () => ...)
 ```
 
-### Plan Structure with Categories
+### Plan Structure
 
 ```xml
 <feature>
@@ -97,20 +91,12 @@ test('memory usage < 50MB', () => ...)
       - Project rules override global
       - Version validation works
     </acceptance>
-    <edge_cases>
-      - Empty global constitution
-      - Missing project constitution
-      - Malformed YAML
-      - Duplicate rule IDs
-    </edge_cases>
-    <security>
-      - No secrets in constitution files
-      - Safe YAML parsing (no code execution)
-    </security>
-    <performance>
-      - Loads in < 100ms
-      - Caches after first load
-    </performance>
+    <!-- Optional: add via /gsd:add-tests after shipping -->
+    <recommended_later>
+      - Edge: Empty constitution, malformed YAML, duplicate IDs
+      - Security: Safe YAML parsing (no code execution)
+      - Performance: Loads in < 100ms, caches after first load
+    </recommended_later>
   </tests>
 
   <implementation>
@@ -119,13 +105,13 @@ test('memory usage < 50MB', () => ...)
 </feature>
 ```
 
-**All 4 categories required.** Write ALL tests before ANY implementation.
-</test_categories>
+**Acceptance tests required.** Write them before ANY implementation. Edge/security/performance tests added later via `/gsd:add-tests`.
+</test_strategy>
 
 <tdd_plan_structure>
 ## TDD Plan Structure
 
-Each TDD plan implements **one feature** through the full RED-GREEN-REFACTOR cycle.
+Each TDD plan implements **one feature** through the RED-GREEN cycle.
 
 ```markdown
 ---
@@ -163,15 +149,15 @@ Output: [Working, tested feature]
 <success_criteria>
 - Failing test written and committed
 - Implementation passes test
-- Refactor complete (if needed)
-- All 2-3 commits present
+- Refactor complete (optional, if obvious cleanup exists)
+- Both commits present (test + feat)
 </success_criteria>
 
 <output>
 After completion, create SUMMARY.md with:
 - RED: What test was written, why it failed
 - GREEN: What implementation made it pass
-- REFACTOR: What cleanup was done (if any)
+- REFACTOR: What cleanup was done (optional, if any)
 - Commits: List of commits produced
 </output>
 ```
@@ -180,7 +166,7 @@ After completion, create SUMMARY.md with:
 </tdd_plan_structure>
 
 <execution_flow>
-## Red-Green-Refactor Cycle
+## Red-Green Cycle
 
 **RED - Write failing test:**
 1. Create test file following project conventions
@@ -195,12 +181,12 @@ After completion, create SUMMARY.md with:
 3. Run test - it MUST pass
 4. Commit: `feat({phase}-{plan}): implement [feature]`
 
-**REFACTOR (if needed):**
+**REFACTOR (optional):** Skip unless obvious cleanup exists.
 1. Clean up implementation if obvious improvements exist
 2. Run tests - MUST still pass
 3. Only commit if changes made: `refactor({phase}-{plan}): clean up [feature]`
 
-**Result:** Each TDD plan produces 2-3 atomic commits.
+**Result:** Each TDD plan produces 2 commits (optional 3rd for refactor).
 </execution_flow>
 
 <test_quality>
@@ -304,13 +290,7 @@ Framework setup is a one-time cost included in the first TDD plan's RED phase.
 
 **Test doesn't pass in GREEN phase:**
 - Debug implementation
-- Don't skip to refactor
 - Keep iterating until green
-
-**Tests fail in REFACTOR phase:**
-- Undo refactor
-- Commit was premature
-- Refactor in smaller steps
 
 **Unrelated tests break:**
 - Stop and investigate
@@ -321,7 +301,7 @@ Framework setup is a one-time cost included in the first TDD plan's RED phase.
 <commit_pattern>
 ## Commit Pattern for TDD Plans
 
-TDD plans produce 2-3 atomic commits (one per phase):
+TDD plans produce 2 atomic commits (optional 3rd for refactor):
 
 ```
 test(08-02): add failing test for email validation
@@ -336,7 +316,8 @@ feat(08-02): implement email validation
 - Returns boolean for validity
 - Handles edge cases (empty, null)
 
-refactor(08-02): extract regex to constant (optional)
+# Optional — only if obvious cleanup exists:
+refactor(08-02): extract regex to constant
 
 - Moved pattern to EMAIL_REGEX constant
 - No behavior changes
@@ -345,7 +326,7 @@ refactor(08-02): extract regex to constant (optional)
 
 **Comparison with standard plans:**
 - Standard plans: 1 commit per task, 2-4 commits per plan
-- TDD plans: 2-3 commits for single feature
+- TDD plans: 2 commits for single feature (optional 3rd)
 
 Both follow same format: `{type}({phase}-{plan}): {description}`
 
@@ -359,14 +340,7 @@ Both follow same format: `{type}({phase}-{plan}): {description}`
 <context_budget>
 ## Context Budget
 
-TDD plans target **~40% context usage** (lower than standard plans' ~50%).
+TDD plans target **~45% context usage** (lower than standard plans' ~50%).
 
-Why lower:
-- RED phase: write test, run test, potentially debug why it didn't fail
-- GREEN phase: implement, run test, potentially iterate on failures
-- REFACTOR phase: modify code, run tests, verify no regressions
-
-Each phase involves reading files, running commands, analyzing output. The back-and-forth is inherently heavier than linear task execution.
-
-Single feature focus ensures full quality throughout the cycle.
+The RED→GREEN back-and-forth with file reads, test runs, and output analysis is heavier than linear task execution. Single feature focus ensures full quality throughout the cycle.
 </context_budget>

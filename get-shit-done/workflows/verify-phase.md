@@ -255,38 +255,46 @@ find_test_files() {
 
 ### 2. Test Category Existence
 
-For TDD plans (`type: tdd`), verify all 4 test categories exist:
+For TDD plans (`type: tdd`), verify acceptance tests exist (required). Other categories are recommended but not blocking.
 
 ```bash
 verify_test_categories() {
   local test_files="$1"
-  local missing=()
+  local warnings=()
 
-  # Category patterns (language-agnostic keywords)
+  # Required: acceptance tests
   local has_acceptance=$(echo "$test_files" | xargs grep -l -E "acceptance|should.*return|should.*create|happy.?path|success" 2>/dev/null | wc -l)
+
+  # Recommended (non-blocking): edge, security, performance
   local has_edge=$(echo "$test_files" | xargs grep -l -E "edge|null|empty|invalid|overflow|boundary|negative|zero|missing" 2>/dev/null | wc -l)
   local has_security=$(echo "$test_files" | xargs grep -l -E "security|injection|xss|csrf|auth|sanitiz|escap|permission|forbidden" 2>/dev/null | wc -l)
   local has_perf=$(echo "$test_files" | xargs grep -l -E "performance|benchmark|timeout|< ?[0-9]+.?ms|slow|fast|throughput" 2>/dev/null | wc -l)
 
-  [ "$has_acceptance" -eq 0 ] && missing+=("acceptance")
-  [ "$has_edge" -eq 0 ] && missing+=("edge_cases")
-  [ "$has_security" -eq 0 ] && missing+=("security")
-  [ "$has_perf" -eq 0 ] && missing+=("performance")
+  if [ "$has_acceptance" -eq 0 ]; then
+    echo "FAILED: Missing acceptance tests (required)"
+    return 1
+  fi
 
-  if [ ${#missing[@]} -eq 0 ]; then
-    echo "PASSED: All 4 test categories present"
+  [ "$has_edge" -eq 0 ] && warnings+=("edge_cases")
+  [ "$has_security" -eq 0 ] && warnings+=("security")
+  [ "$has_perf" -eq 0 ] && warnings+=("performance")
+
+  if [ ${#warnings[@]} -eq 0 ]; then
+    echo "PASSED: Acceptance tests present, all recommended categories also present"
   else
-    echo "FAILED: Missing test categories: ${missing[*]}"
+    echo "PASSED with recommendations: Add ${warnings[*]} via /gsd:add-tests"
   fi
 }
 ```
 
 ### 3. Per-Category Minimum Tests
 
+Only acceptance tests are checked against minimum. Other categories reported but not gating.
+
 ```bash
 verify_category_coverage() {
   local test_files="$1"
-  local min_per_category=2
+  local min_acceptance=2
 
   # Count tests per category (language-agnostic)
   local acceptance=$(echo "$test_files" | xargs grep -c -E "acceptance|should.*return|should.*create|happy.?path" 2>/dev/null | awk -F: '{sum+=$2} END {print sum}')
@@ -295,18 +303,17 @@ verify_category_coverage() {
   local perf=$(echo "$test_files" | xargs grep -c -E "performance|benchmark|timeout|throughput" 2>/dev/null | awk -F: '{sum+=$2} END {print sum}')
 
   echo "Category coverage:"
-  echo "  Acceptance: ${acceptance:-0} tests (min: $min_per_category)"
-  echo "  Edge cases: ${edge:-0} tests (min: $min_per_category)"
-  echo "  Security: ${security:-0} tests (min: $min_per_category)"
-  echo "  Performance: ${perf:-0} tests (min: $min_per_category)"
+  echo "  Acceptance: ${acceptance:-0} tests (min: $min_acceptance) [REQUIRED]"
+  echo "  Edge cases: ${edge:-0} tests [recommended]"
+  echo "  Security: ${security:-0} tests [recommended]"
+  echo "  Performance: ${perf:-0} tests [recommended]"
 
-  if [ "${acceptance:-0}" -ge "$min_per_category" ] && \
-     [ "${edge:-0}" -ge "$min_per_category" ] && \
-     [ "${security:-0}" -ge "$min_per_category" ] && \
-     [ "${perf:-0}" -ge "$min_per_category" ]; then
-    echo "PASSED: All categories meet minimum"
+  if [ "${acceptance:-0}" -ge "$min_acceptance" ]; then
+    echo "PASSED: Acceptance tests meet minimum"
+    [ "${edge:-0}" -eq 0 ] || [ "${security:-0}" -eq 0 ] || [ "${perf:-0}" -eq 0 ] && \
+      echo "NOTE: Add missing recommended categories via /gsd:add-tests"
   else
-    echo "FAILED: Some categories below minimum"
+    echo "FAILED: Acceptance tests below minimum ($min_acceptance required)"
   fi
 }
 ```
@@ -601,8 +608,8 @@ verify_performance_tests() {
 
 | Check | Status | Severity |
 |-------|--------|----------|
-| Test categories exist | Required | Blocker if missing |
-| Per-category minimum | Required | Blocker if below minimum |
+| Acceptance tests exist | Required | Blocker if missing |
+| Acceptance minimum | Required | Blocker if below minimum |
 | Test quality (no fakes) | Required | Blocker if fake patterns |
 | Tests pass | Required | Blocker if failing |
 | Overall coverage | Required | Blocker if below threshold |

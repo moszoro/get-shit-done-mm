@@ -242,7 +242,7 @@ TDD_ENABLED=$(cat .planning/config.json 2>/dev/null | grep -oE '"tdd"\s*:\s*(tru
 
 **Standard tasks:** UI layout/styling, configuration, glue code, one-off scripts, simple CRUD with no business logic.
 
-**Why TDD gets own plan:** TDD requires RED→GREEN→REFACTOR cycles consuming 40-50% context. Embedding in multi-task plans degrades quality.
+**Why TDD gets own plan:** TDD requires RED→GREEN cycles consuming ~45% context. Embedding in multi-task plans degrades quality.
 
 **Task-level TDD** (for code-producing tasks in standard plans): When a task creates or modifies production code, add `tdd="true"` and a `<behavior>` block to make test expectations explicit before implementation:
 
@@ -795,19 +795,19 @@ Output: [Working, tested feature]
 </feature>
 ```
 
-## Red-Green-Refactor Cycle
+## Red-Green Cycle
 
 **RED:** Create test file → write test describing expected behavior → run test (MUST fail) → commit: `test({phase}-{plan}): add failing test for [feature]`
 
 **GREEN:** Write minimal code to pass → run test (MUST pass) → commit: `feat({phase}-{plan}): implement [feature]`
 
-**REFACTOR (if needed):** Clean up → run tests (MUST pass) → commit: `refactor({phase}-{plan}): clean up [feature]`
+**REFACTOR (optional):** Skip unless obvious cleanup exists. Clean up → run tests (MUST pass) → commit: `refactor({phase}-{plan}): clean up [feature]`
 
-Each TDD plan produces 2-3 atomic commits.
+Each TDD plan produces 2 commits (optional 3rd for refactor).
 
 ## Context Budget for TDD
 
-TDD plans target ~40% context (lower than standard 50%). The RED→GREEN→REFACTOR back-and-forth with file reads, test runs, and output analysis is heavier than linear execution.
+TDD plans target ~45% context (lower than standard 50%). The RED→GREEN back-and-forth with file reads, test runs, and output analysis is heavier than linear execution.
 
 ## TDD-First Enforcement
 
@@ -815,57 +815,40 @@ TDD plans target ~40% context (lower than standard 50%). The RED→GREEN→REFAC
 
 For any plan with testable business logic, you MUST:
 - Set `type: tdd` in frontmatter
-- Include `<tests>` section with 4 categories
+- Include `<tests>` with acceptance tests
 
-### Required Test Categories
+### Required: Acceptance Tests
 
-All TDD plans must include tests in 4 categories. Write ALL tests in RED phase before implementation.
+All TDD plans MUST include `<acceptance>` tests. Write them in RED phase before implementation.
 
 ```xml
 <tests>
   <acceptance>
     - From must_haves.truths — prove feature does what it should
   </acceptance>
-  <edge_cases>
-    - Null, empty, overflow, malformed input
-    - Boundary conditions
-  </edge_cases>
-  <security>
-    - Based on project's security_compliance level
-    - Reference: @~/.claude/get-shit-done/references/security-compliance.md
-  </security>
-  <performance>
-    - Response time thresholds
-    - Memory limits
-    - Throughput requirements
-  </performance>
+  <!-- Include <recommended_later> ONLY for tasks that benefit -->
+  <recommended_later>
+    - Edge: [only for parsers, validators, data transformations]
+    - Security: [only for auth, data access, input handling]
+    - Performance: [only for critical paths, heavy queries]
+  </recommended_later>
 </tests>
 ```
 
-### Security Test Selection
+### Targeted Test Recommendations
 
-Read `security_compliance` from `.planning/config.json`:
+Include `<recommended_later>` ONLY on tasks that benefit — not blanket on every task:
 
-```bash
-SECURITY_LEVEL=$(cat .planning/config.json 2>/dev/null | grep -oE '"security_compliance"\s*:\s*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"' || echo "none")
+| Task Type | Recommended Tests | Example |
+|-----------|-------------------|---------|
+| Auth endpoints, data access | Security tests | Access control, audit logging |
+| Parsers, validators, transformations | Edge case tests | Null, empty, malformed input |
+| Critical paths, heavy queries | Performance tests | Response time, memory thresholds |
+| Simple business logic | None beyond acceptance | — |
 
-# Validate against allowed values
-case "$SECURITY_LEVEL" in
-  none|soc2|hipaa|pci-dss|iso27001) ;;
-  *) echo "Warning: Invalid security_compliance '$SECURITY_LEVEL', using 'none'" >&2; SECURITY_LEVEL="none" ;;
-esac
+Users add these later via `/gsd:add-tests`. Security compliance level from config.json informs which security tests to recommend.
 
-# Verify security reference exists
-test -f "$HOME/.claude/get-shit-done/references/security-compliance.md" || echo "Warning: Security reference not found" >&2
-```
-
-| Level | Security Tests |
-|-------|----------------|
-| none | Input validation, output encoding, no hardcoded secrets |
-| soc2 | + Access control, audit logging, encryption at rest |
-| hipaa | + PHI masking, minimum necessary access, 6-year retention |
-| pci-dss | + PAN never logged, CVV never stored, MFA for admin |
-| iso27001 | + Least privilege, key rotation, incident detection |
+Reference: @~/.claude/get-shit-done/references/security-compliance.md
 
 ### Refactor Plan Decision
 

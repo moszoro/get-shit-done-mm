@@ -971,7 +971,7 @@ TDD_ENABLED=$(cat .planning/config.json 2>/dev/null | grep -oE '"tdd"\s*:\s*(tru
 
 **If `TDD_ENABLED=false`:** Skip RED phase, go directly to "Apply minimal fix" section. Test is optional.
 
-**If `TDD_ENABLED=true`:** Follow full RED-GREEN cycle below. Test is MANDATORY.
+**If `TDD_ENABLED=true`:** Follow RED-GREEN cycle below. One regression test is MANDATORY — reproduces the exact bug. No category requirements. If truly untestable (UI-only, timing-dependent), document why and skip.
 
 ---
 
@@ -1009,7 +1009,7 @@ esac
 - If verification PASSES: Update Resolution.verification, proceed to request_human_verification
 
 **Acceptance criteria:**
-- `TDD_ENABLED=true`: Fix MUST include regression test. Reject if test missing.
+- `TDD_ENABLED=true`: One regression test MANDATORY. Reproduces the exact bug, nothing more. Skip only if truly untestable — document why.
 - `TDD_ENABLED=false`: Test recommended but not required.
 </step>
 
@@ -1299,7 +1299,7 @@ Check for mode flags in prompt context:
 - [ ] Eliminated prevents re-investigation
 - [ ] Can resume perfectly from any /clear
 - [ ] Root cause confirmed with evidence before fixing
-- [ ] **TDD: Failing test written BEFORE fix (RED)**
+- [ ] **TDD: Regression test written BEFORE fix (RED) — mandatory unless untestable**
 - [ ] **TDD: Test passes AFTER fix (GREEN)**
 - [ ] Fix verified against original symptoms
 - [ ] Regression test included in commit
